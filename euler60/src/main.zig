@@ -70,6 +70,16 @@ pub fn main() !void {
                         continue :outer;
                     }
                 }
+                if (k == 0) {
+                    var sum: u32 = 0;
+                    for (current_primes) |value| {
+                        sum += value;
+                    }
+                    if (min_sum < sum) {
+                        std.debug.print("stopping early on: {}, {any}\n", .{ sum, current_primes });
+                        break :main;
+                    }
+                }
                 break :outer;
             }
         }
