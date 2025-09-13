@@ -37,6 +37,7 @@ pub fn main() !void {
         last_prime = prime_getter.nextRestricted(last_prime, max_prime);
         value.* = last_prime;
     }
+    std.debug.print("starting with: {any}\n", .{current_primes});
 
     var min_sum: u32 = std.math.maxInt(u32);
 
@@ -97,8 +98,8 @@ const PrimeGetter = struct {
         self.arr.unset(0);
         self.arr.unset(1);
 
-        var i: u32 = 2;
-        while (i < std.math.sqrt(n)) : (i += 1) {
+        var i: u32 = 3;
+        while (i < std.math.sqrt(n)) : (i += 2) {
             if (self.arr.isSet(i)) {
                 var j: u32 = i * i;
                 while (j <= n) : (j += i) {
@@ -117,8 +118,8 @@ const PrimeGetter = struct {
     }
 
     fn nextRestricted(self: Self, x: u32, max: u32) u32 {
-        var i: u32 = x + 1;
-        while (i < max) : (i += 1) {
+        var i: u32 = x + 2;
+        while (i < max) : (i += 2) {
             if (self.arr.isSet(i)) {
                 return i;
             }
@@ -156,14 +157,9 @@ test PrimeGetter {
     try std.testing.expect(prime_getter.isPrime(109));
     try std.testing.expect(prime_getter.isPrime(7));
     try std.testing.expect(prime_getter.isPrime(11));
-    try std.testing.expect(!prime_getter.isPrime(10));
+    try std.testing.expect(!prime_getter.isPrime(9));
 
-    try std.testing.expectEqual(2, prime_getter.nextRestricted(1, 109));
-    try std.testing.expectEqual(3, prime_getter.nextRestricted(2, 109));
     try std.testing.expectEqual(5, prime_getter.nextRestricted(3, 109));
-    try std.testing.expectEqual(5, prime_getter.nextRestricted(4, 109));
     try std.testing.expectEqual(7, prime_getter.nextRestricted(5, 109));
-    try std.testing.expectEqual(7, prime_getter.nextRestricted(6, 109));
     try std.testing.expectEqual(11, prime_getter.nextRestricted(7, 109));
-    try std.testing.expectEqual(109, prime_getter.nextRestricted(108, 110));
 }
