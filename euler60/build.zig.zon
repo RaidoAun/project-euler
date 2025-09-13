@@ -1,0 +1,13 @@
+.{
+    .name = .euler60,
+    .version = "0.0.0",
+    .fingerprint = 0xb787a0d442340910, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.15.0-dev.1177+9abc3232a",
+    .dependencies = .{
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
