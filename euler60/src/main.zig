@@ -22,10 +22,11 @@ pub fn main() !void {
     };
 
     var timer = try std.time.Timer.start();
-    const prime_getter = try PrimeGetter.init(allocator, sieve_size);
+    var prime_getter: PrimeGetter = undefined;
+    try prime_getter.init(allocator, sieve_size);
     defer prime_getter.deinit(allocator);
 
-    std.debug.print("prime count: {}\n", .{prime_getter.arr.len});
+    std.debug.print("prime count: {}\n", .{prime_getter.arr.bit_length});
     std.debug.print("prime init time {}ms\n", .{timer.lap() / std.time.ns_per_ms});
 
     const current_primes = try allocator.alloc(u32, count);
@@ -88,41 +89,37 @@ pub fn main() !void {
 }
 
 const PrimeGetter = struct {
-    arr: []bool,
+    arr: std.DynamicBitSetUnmanaged,
     const Self = @This();
 
-    fn init(allocator: std.mem.Allocator, n: u32) !Self {
-        const arr = try allocator.alloc(bool, n + 1);
-        for (arr) |*value| {
-            value.* = true;
-        }
-        arr[0] = false;
-        arr[1] = false;
+    fn init(self: *Self, allocator: std.mem.Allocator, n: u32) !void {
+        self.arr = try std.DynamicBitSetUnmanaged.initFull(allocator, n + 1);
+        self.arr.unset(0);
+        self.arr.unset(1);
 
         var i: u32 = 2;
         while (i < std.math.sqrt(n)) : (i += 1) {
-            if (arr[i]) {
+            if (self.arr.isSet(i)) {
                 var j: u32 = i * i;
                 while (j <= n) : (j += i) {
-                    arr[j] = false;
+                    self.arr.unset(j);
                 }
             }
         }
-        return .{ .arr = arr };
     }
 
-    fn deinit(self: Self, allocator: std.mem.Allocator) void {
-        allocator.free(self.arr);
+    fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        self.arr.deinit(allocator);
     }
 
     fn isPrime(self: Self, x: u32) bool {
-        return self.arr[x];
+        return self.arr.isSet(x);
     }
 
     fn nextRestricted(self: Self, x: u32, max: u32) u32 {
         var i: u32 = x + 1;
         while (i < max) : (i += 1) {
-            if (self.arr[i]) {
+            if (self.arr.isSet(i)) {
                 return i;
             }
         }
@@ -152,7 +149,8 @@ const PrimeGetter = struct {
 };
 
 test PrimeGetter {
-    const prime_getter = try PrimeGetter.init(std.testing.allocator, 109);
+    var prime_getter: PrimeGetter = undefined;
+    try prime_getter.init(std.testing.allocator, 109);
     defer prime_getter.deinit(std.testing.allocator);
 
     try std.testing.expect(prime_getter.isPrime(109));
@@ -160,16 +158,12 @@ test PrimeGetter {
     try std.testing.expect(prime_getter.isPrime(11));
     try std.testing.expect(!prime_getter.isPrime(10));
 
-    try std.testing.expectEqual(prime_getter.next(1), 2);
-    try std.testing.expectEqual(prime_getter.next(2), 3);
-    try std.testing.expectEqual(prime_getter.next(3), 5);
-    try std.testing.expectEqual(prime_getter.next(4), 5);
-    try std.testing.expectEqual(prime_getter.next(5), 7);
-    try std.testing.expectEqual(prime_getter.next(6), 7);
-    try std.testing.expectEqual(prime_getter.next(7), 11);
-    try std.testing.expectEqual(prime_getter.next(8), 11);
-    try std.testing.expectEqual(prime_getter.next(9), 11);
-    try std.testing.expectEqual(prime_getter.next(10), 11);
-    try std.testing.expectEqual(prime_getter.next(11), 13);
-    try std.testing.expectEqual(prime_getter.next(108), 109);
+    try std.testing.expectEqual(2, prime_getter.nextRestricted(1, 109));
+    try std.testing.expectEqual(3, prime_getter.nextRestricted(2, 109));
+    try std.testing.expectEqual(5, prime_getter.nextRestricted(3, 109));
+    try std.testing.expectEqual(5, prime_getter.nextRestricted(4, 109));
+    try std.testing.expectEqual(7, prime_getter.nextRestricted(5, 109));
+    try std.testing.expectEqual(7, prime_getter.nextRestricted(6, 109));
+    try std.testing.expectEqual(11, prime_getter.nextRestricted(7, 109));
+    try std.testing.expectEqual(109, prime_getter.nextRestricted(108, 110));
 }
