@@ -2,9 +2,12 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-const count = 5;
 const max_prime = 9999;
 const sieve_size = 100_000_000;
+
+pub const std_options: std.Options = .{
+    .log_level = .debug,
+};
 
 pub fn main() !void {
     const allocator, const is_debug = gpa: {
@@ -20,14 +23,18 @@ pub fn main() !void {
             .ok => {},
         }
     };
+    const answer = try task60(allocator, 4);
+    std.log.info("answer: {}", .{answer});
+}
 
+fn task60(allocator: std.mem.Allocator, count: u32) !u32 {
     var timer = try std.time.Timer.start();
     var prime_getter: PrimeGetter = undefined;
     try prime_getter.init(allocator, sieve_size);
     defer prime_getter.deinit(allocator);
 
-    std.debug.print("prime count: {}\n", .{prime_getter.arr.bit_length});
-    std.debug.print("prime init time {}ms\n", .{timer.lap() / std.time.ns_per_ms});
+    std.log.debug("prime count: {}", .{prime_getter.arr.bit_length});
+    std.log.info("prime init time {}ms", .{timer.lap() / std.time.ns_per_ms});
 
     const current_primes = try allocator.alloc(u32, count);
     defer allocator.free(current_primes);
@@ -37,7 +44,7 @@ pub fn main() !void {
         last_prime = prime_getter.nextRestricted(last_prime, max_prime);
         value.* = last_prime;
     }
-    std.debug.print("starting with: {any}\n", .{current_primes});
+    std.log.debug("starting with: {any}", .{current_primes});
 
     var min_sum: u32 = std.math.maxInt(u32);
 
@@ -52,7 +59,7 @@ pub fn main() !void {
                 min_sum = sum;
             }
             k = @intCast(current_primes.len - 1);
-            std.debug.print("found candidate: {}, primes: {any}\n", .{ sum, current_primes });
+            std.log.debug("found candidate: {}, primes: {any}", .{ sum, current_primes });
         }
         outer: while (k >= 0) : (k -= 1) {
             var o: u32 = k + 1;
@@ -78,7 +85,7 @@ pub fn main() !void {
                         sum += value;
                     }
                     if (min_sum < sum) {
-                        std.debug.print("stopping early on: {}, {any}\n", .{ sum, current_primes });
+                        std.log.debug("stopping early on: {}, {any}", .{ sum, current_primes });
                         break :main;
                     }
                 }
@@ -86,7 +93,7 @@ pub fn main() !void {
             }
         }
     }
-    std.debug.print("answer: {}\n", .{min_sum});
+    return min_sum;
 }
 
 const PrimeGetter = struct {
@@ -162,4 +169,9 @@ test PrimeGetter {
     try std.testing.expectEqual(5, prime_getter.nextRestricted(3, 109));
     try std.testing.expectEqual(7, prime_getter.nextRestricted(5, 109));
     try std.testing.expectEqual(11, prime_getter.nextRestricted(7, 109));
+}
+
+test task60 {
+    try std.testing.expectEqual(792, task60(std.testing.allocator, 4));
+    // try std.testing.expectEqual(26033, task60(std.testing.allocator, 5));
 }
